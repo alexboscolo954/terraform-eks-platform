@@ -1,0 +1,56 @@
+name: ci
+on:
+  push: {branches: [main]}
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  TF_VERSION: 1.15.5
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with: {terraform_version: "${{ env.TF_VERSION }}", terraform_wrapper: false}
+      - uses: terraform-linters/setup-tflint@v6
+        with: {tflint_version: v0.64.0}
+      - run: make lint
+        env: {GITHUB_TOKEN: "${{ github.token }}"}
+
+  test:
+    # Mocked providers: guardrails and dev/prod profiles, no AWS at all.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with: {terraform_version: "${{ env.TF_VERSION }}", terraform_wrapper: false}
+      - run: make test
+
+  moto:
+    # Local AWS API (Moto): resolved plans through checkov + platform checks,
+    # real apply/re-plan/destroy of the network layer.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with: {terraform_version: "${{ env.TF_VERSION }}", terraform_wrapper: false}
+      - uses: actions/setup-python@v7
+        with: {python-version: "3.12"}
+      - run: pip install -r requirements-test.txt
+      - run: make moto
+
+  mutate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with: {terraform_version: "${{ env.TF_VERSION }}", terraform_wrapper: false}
+      - uses: actions/setup-python@v7
+        with: {python-version: "3.12"}
+      - run: pip install -r requirements-test.txt
+      - run: make mutate

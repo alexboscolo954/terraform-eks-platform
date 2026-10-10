@@ -1,0 +1,26 @@
+# checkov runs on Terraform plans generated against Moto (tests/moto/run.sh),
+# so module defaults and computed wiring are resolved, not guessed.
+# Every skip has a reason; "verified after apply" ones are checked against the
+# Moto API by tests/moto/assert_applied.py instead.
+framework: terraform_plan
+skip-download: true   # no calls to the Prisma Cloud API
+skip-check:
+  # Stale: checkov 3.3.26 thinks 1.35 is the newest EKS version (and still
+  # lists 1.29/1.30). Replaced by the kubernetes_version validation in
+  # modules/platform/variables.tf, which tracks the EKS standard-support calendar.
+  - CKV_AWS_339
+  # KMS key ARN is "known after apply", so the plan shows no key. Verified after
+  # apply: both log groups carry the logs CMK.
+  - CKV_AWS_158
+  # Flow log is linked by computed IDs the graph check can't follow. Verified
+  # after apply: the VPC has an ALL-traffic flow log to CloudWatch.
+  - CKV2_AWS_11
+  # Upstream EBS CSI driver policy: ec2:CreateVolume/AttachVolume etc. need
+  # Resource "*" (scoped by tag conditions instead).
+  - CKV_AWS_290
+  - CKV_AWS_355
+  # Attached at apply time (cluster SG to the EKS control plane, node SG to
+  # the launch template); the plan graph can't see it.
+  - CKV2_AWS_5
+  # NAT gateway Elastic IPs are attached to NAT gateways, not EC2 instances.
+  - CKV2_AWS_19

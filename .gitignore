@@ -1,0 +1,10 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.plan
+*.plan.json
+tests/moto/moto.log
+bin/
+.DS_Store
+*.tfvars
+!*.tfvars.example
